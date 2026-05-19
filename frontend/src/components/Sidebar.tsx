@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react"
 import { useChat, MODELS } from "../hooks/useChat"
 import PersonaSwitcher from "./PersonaSwitcher"
 
-const API = "http://localhost:8000/api"
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api"
 
 interface DocSummary {
   filename: string
