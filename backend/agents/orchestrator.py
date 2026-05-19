@@ -24,9 +24,6 @@ PERSONA_PROMPTS = {
     "creative":   "Use storytelling, vivid examples, and engaging narrative style.",
 }
 
-# ---------------------------------------------------------------------------
-# Groq vision model registry
-# ---------------------------------------------------------------------------
 GROQ_VISION_MODELS = {
     "meta-llama/llama-4-scout-17b-16e-instruct",
     "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -39,9 +36,6 @@ GEMINI_DEPRECATED = {
 }
 GEMINI_FALLBACK = "gemini-2.0-flash"
 
-# ---------------------------------------------------------------------------
-# Fallback chain
-# ---------------------------------------------------------------------------
 FALLBACK_CHAIN: list[str] = [
     "groq/llama-3.3-70b-versatile",
     "groq/llama-3.1-8b-instant",
@@ -58,42 +52,30 @@ FALLBACK_TRIGGER_PATTERNS = [
     "context length", "token limit",
 ]
 
-# FIX: Models with small context windows — skip when prompt is large
 SMALL_CONTEXT_MODELS = {
     "groq/llama-3.1-8b-instant",
     "mistral/mistral-small-latest",
 }
 
-# FIX: If the total prompt exceeds this char count, skip small-context models
 MAX_PROMPT_CHARS_FOR_SMALL_MODELS = 8_000
 
-# FIX: Gemini retry config — reduced from 30s/60s to avoid blocking fallback chain
-GEMINI_RETRY_WAIT_SECONDS = [10, 20]   # wait before attempt 2, wait before attempt 3
+GEMINI_RETRY_WAIT_SECONDS = [10, 20]
 GEMINI_MAX_RETRIES = 3
 
-# Regex to find code blocks in LLM responses
 CODE_BLOCK_RE = re.compile(
     r"```(python|javascript|js|py)\n(.*?)```",
     re.DOTALL | re.IGNORECASE,
 )
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def should_fallback(error_str: str) -> bool:
-    """Return True if the error is retriable and we should try the next model."""
     lower = error_str.lower()
-    # FIX: 413 (request too large) should NOT trigger a generic fallback —
-    # it will be handled separately by skipping small-context models.
     if "413" in error_str:
         return False
     return any(p in lower for p in FALLBACK_TRIGGER_PATTERNS)
 
 
 def estimate_prompt_chars(messages: list, system: str) -> int:
-    """Rough character count of the full prompt sent to the LLM."""
     total = len(system)
     for m in messages:
         content = m.get("content", "")
@@ -107,11 +89,6 @@ def estimate_prompt_chars(messages: list, system: str) -> int:
 
 
 def get_fallback_chain(primary_model_id: str, prompt_char_len: int = 0) -> list[str]:
-    """
-    Build the ordered fallback list after the primary model.
-
-    FIX: Skip small-context models when the prompt is too large (avoids 413 errors).
-    """
     try:
         idx = FALLBACK_CHAIN.index(primary_model_id)
         candidates = FALLBACK_CHAIN[idx + 1:]
@@ -120,13 +97,12 @@ def get_fallback_chain(primary_model_id: str, prompt_char_len: int = 0) -> list[
 
     available = []
     for model_id in candidates:
-        # FIX: Skip small-context models for large prompts
         if (
             prompt_char_len > MAX_PROMPT_CHARS_FOR_SMALL_MODELS
             and model_id in SMALL_CONTEXT_MODELS
         ):
             print(
-                f"[orchestrator] ⏭  Skipping {model_id!r} — "
+                f"[orchestrator] Skipping {model_id!r} — "
                 f"prompt ({prompt_char_len:,} chars) exceeds small-model limit"
             )
             continue
@@ -179,7 +155,7 @@ def format_error(provider: str, model_id: str, model_name: str, error_str: str) 
         tips = {
             "gemini": (
                 "- Wait ~1 min and retry (free tier = 15 req/min, 1 500 req/day)\n"
-                "- Switch to **Groq — Llama 4 Scout Vision** (free & fast)\n"
+                "- Switch to **Groq -- Llama 4 Scout Vision** (free & fast)\n"
                 "- Upgrade at https://ai.google.dev/pricing"
             ),
             "groq": (
@@ -199,51 +175,40 @@ def format_error(provider: str, model_id: str, model_name: str, error_str: str) 
         }
         tip = tips.get(provider, "- Try a different model or wait and retry.")
         return (
-            f"⚠️ **{provider.title()} quota / rate-limit exceeded** for `{model_name}`.\n\n"
+            f"Warning: **{provider.title()} quota / rate-limit exceeded** for `{model_name}`.\n\n"
             f"**What to do:**\n{tip}"
         )
 
     if "413" in error_str:
         return (
-            f"⚠️ **Request too large** for `{model_name}`.\n\n"
+            f"Warning: **Request too large** for `{model_name}`.\n\n"
             "The conversation context is too long for this model's context window.\n"
             "Try starting a new session or switching to a model with a larger context window."
         )
 
     if "404" in error_str or "not found" in err_lower:
         return (
-            f"⚠️ **Model not found**: `{model_name}`.\n\n"
+            f"Warning: **Model not found**: `{model_name}`.\n\n"
             "Please select a different model from the dropdown.\n\n"
             f"Details: `{error_str[:200]}`"
         )
 
     if "401" in error_str or "403" in error_str or "authentication" in err_lower or "api key" in err_lower:
         return (
-            f"⚠️ **Invalid or missing API key** for provider `{provider}`.\n\n"
+            f"Warning: **Invalid or missing API key** for provider `{provider}`.\n\n"
             "Check your `.env` file and make sure the correct key is set."
         )
 
     return (
-        f"⚠️ **Error from `{model_id}`**:\n"
+        f"Warning: **Error from `{model_id}`**:\n"
         f"```\n{error_str[:400]}\n```"
     )
 
-
-# ---------------------------------------------------------------------------
-# Code execution helper
-# ---------------------------------------------------------------------------
 
 async def auto_execute_code_blocks(
     response_text: str,
     session_id: str,
 ) -> tuple[str, list[dict]]:
-    """
-    Detect ```python / ```javascript blocks in the LLM response,
-    execute each one, and append the output inline after the block.
-
-    Returns:
-        (augmented_response_text, list_of_execution_results)
-    """
     execution_results = []
     augmented = response_text
 
@@ -270,10 +235,6 @@ async def auto_execute_code_blocks(
     return augmented, execution_results
 
 
-# ---------------------------------------------------------------------------
-# Core streaming helper — sync, called via asyncio.to_thread
-# ---------------------------------------------------------------------------
-
 def get_stream_chunks(
     model_id: str,
     messages: list,
@@ -282,7 +243,7 @@ def get_stream_chunks(
 ) -> list[str]:
     provider, model_name = parse_model_id(model_id)
 
-    # ── Groq ──────────────────────────────────────────────────────────────
+    # -- Groq ----------------------------------------------------------------
     if provider == "groq":
         from groq import Groq
         client = Groq(api_key=settings.groq_api_key)
@@ -307,9 +268,14 @@ def get_stream_chunks(
             max_tokens=2000,
             stream=True,
         )
-        return [chunk.choices[0].delta.content or "" for chunk in stream]
+        # FIX: guard against empty choices list
+        return [
+            chunk.choices[0].delta.content or ""
+            for chunk in stream
+            if chunk.choices
+        ]
 
-    # ── Anthropic ─────────────────────────────────────────────────────────
+    # -- Anthropic -----------------------------------------------------------
     elif provider == "anthropic":
         import anthropic
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
@@ -339,7 +305,7 @@ def get_stream_chunks(
                 chunks.append(text)
         return chunks
 
-    # ── OpenAI ────────────────────────────────────────────────────────────
+    # -- OpenAI --------------------------------------------------------------
     elif provider == "openai":
         from openai import OpenAI
         client = OpenAI(api_key=settings.openai_api_key)
@@ -359,15 +325,20 @@ def get_stream_chunks(
             max_tokens=2000,
             stream=True,
         )
-        return [chunk.choices[0].delta.content or "" for chunk in stream]
+        # FIX: guard against empty choices list
+        return [
+            chunk.choices[0].delta.content or ""
+            for chunk in stream
+            if chunk.choices
+        ]
 
-    # ── Google Gemini ─────────────────────────────────────────────────────
+    # -- Google Gemini -------------------------------------------------------
     elif provider == "gemini":
         import google.generativeai as genai
         genai.configure(api_key=settings.gemini_api_key)
 
         if model_name in GEMINI_DEPRECATED:
-            print(f"[orchestrator] WARNING: '{model_name}' deprecated → using '{GEMINI_FALLBACK}'")
+            print(f"[orchestrator] WARNING: '{model_name}' deprecated -> using '{GEMINI_FALLBACK}'")
             model_name = GEMINI_FALLBACK
 
         model = genai.GenerativeModel(model_name=model_name, system_instruction=system)
@@ -393,8 +364,6 @@ def get_stream_chunks(
                 last_exc = exc
                 err_str = str(exc)
                 is_quota = "429" in err_str or "quota" in err_str.lower()
-                # FIX: Use shorter wait times (10s, 20s) instead of 30s, 60s
-                # to avoid blocking the fallback chain for too long.
                 if is_quota and attempt < GEMINI_MAX_RETRIES - 1:
                     wait_sec = GEMINI_RETRY_WAIT_SECONDS[attempt]
                     print(
@@ -406,7 +375,7 @@ def get_stream_chunks(
                     break
         raise last_exc  # type: ignore[misc]
 
-    # ── Mistral ───────────────────────────────────────────────────────────
+    # -- Mistral -------------------------------------------------------------
     elif provider == "mistral":
         from mistralai import Mistral
         client = Mistral(api_key=settings.mistral_api_key)
@@ -423,50 +392,33 @@ def get_stream_chunks(
         )
 
 
-# ---------------------------------------------------------------------------
-# Fallback-aware wrapper
-# ---------------------------------------------------------------------------
-
 def get_stream_chunks_with_fallback(
     primary_model_id: str,
     messages: list,
     system: str,
     images: list[dict],
 ) -> tuple[list[str], str]:
-    """
-    Try primary model. On retriable error, walk down the fallback chain.
-
-    FIX: Passes prompt_char_len to get_fallback_chain so small-context
-    models are skipped automatically when the prompt is too large.
-
-    Returns (chunks, model_id_that_succeeded).
-    """
-    # FIX: Estimate prompt size once so we can skip unsuitable fallbacks
     prompt_char_len = estimate_prompt_chars(messages, system)
-
     chain = [primary_model_id] + get_fallback_chain(primary_model_id, prompt_char_len)
     last_error = ""
 
     for attempt_num, model_id in enumerate(chain):
         try:
             if attempt_num > 0:
-                print(f"[orchestrator] 🔄 Fallback attempt {attempt_num}: trying {model_id!r}")
+                print(f"[orchestrator] Fallback attempt {attempt_num}: trying {model_id!r}")
             chunks = get_stream_chunks(model_id, messages, system, images)
             if attempt_num > 0:
-                print(f"[orchestrator] ✅ Fallback succeeded with {model_id!r}")
+                print(f"[orchestrator] Fallback succeeded with {model_id!r}")
             return chunks, model_id
 
         except Exception as exc:
             error_str = str(exc)
             last_error = error_str
-            print(f"[orchestrator] ✖ {model_id!r} failed: {error_str[:120]}")
+            print(f"[orchestrator] {model_id!r} failed: {error_str[:120]}")
 
-            # FIX: If the error is 413 for the primary model, rebuild the
-            # fallback chain with the updated prompt size so small models
-            # are excluded even if they weren't excluded initially.
             if "413" in error_str and attempt_num == 0:
                 print(
-                    f"[orchestrator] ⚠️  413 on primary — rebuilding fallback chain "
+                    f"[orchestrator] 413 on primary -- rebuilding fallback chain "
                     f"excluding small-context models (prompt={prompt_char_len:,} chars)"
                 )
                 chain = [primary_model_id] + get_fallback_chain(
@@ -484,10 +436,6 @@ def get_stream_chunks_with_fallback(
     raise RuntimeError(f"All models in fallback chain failed. Last error: {last_error[:300]}")
 
 
-# ---------------------------------------------------------------------------
-# Main async orchestrator
-# ---------------------------------------------------------------------------
-
 async def run(
     query: str,
     session_id: str,
@@ -498,7 +446,7 @@ async def run(
 ) -> AsyncGenerator[dict, None]:
 
     print(
-        f"[orchestrator] ▶  model_id={model_id!r}  "
+        f"[orchestrator] model_id={model_id!r}  "
         f"persona={persona!r}  session={session_id!r}"
     )
 
@@ -510,12 +458,12 @@ async def run(
         "message": f"Using model: {model_id}",
     }
 
-    # ── Step 1: Extract user profile facts ────────────────────────────────
+    # Step 1: Extract user profile facts
     extracted = await asyncio.to_thread(extract_and_save, session_id, query)
     if extracted:
-        print(f"[orchestrator] 🧠 Profile extracted: {extracted}")
+        print(f"[orchestrator] Profile extracted: {extracted}")
 
-    # ── Step 2: Memory ─────────────────────────────────────────────────────
+    # Step 2: Memory
     history = get_history(session_id)
 
     if not history:
@@ -523,7 +471,7 @@ async def run(
         if history:
             set_history(session_id, history)
             print(
-                f"[orchestrator] ♻  Reloaded {len(history)} messages "
+                f"[orchestrator] Reloaded {len(history)} messages "
                 f"from long-term memory for session '{session_id}'"
             )
 
@@ -533,15 +481,15 @@ async def run(
         limit=3,
     )
 
-    # ── Step 3: RAG retrieval ──────────────────────────────────────────────
+    # Step 3: RAG retrieval
     yield {"agent": "retrieval", "status": "thinking", "message": "Searching knowledge base..."}
     rag_sources = retrieve(query, top_k=4)
 
-    # ── Step 4: Web search ─────────────────────────────────────────────────
+    # Step 4: Web search
     yield {"agent": "web_search", "status": "thinking", "message": "Searching web via DuckDuckGo..."}
     web_sources = await asyncio.to_thread(web_search, query, max_results=3)
 
-    # ── Step 5: Vision ─────────────────────────────────────────────────────
+    # Step 5: Vision
     supports_vision = (
         provider in ("anthropic", "openai", "gemini")
         or (provider == "groq" and is_groq_vision_model(model_name))
@@ -553,12 +501,12 @@ async def run(
         images = await asyncio.to_thread(load_images_for_query, settings.upload_dir)
         yield {"agent": "vision", "status": "thinking", "message": f"Found {len(images)} figure(s)"}
     else:
-        yield {"agent": "vision", "status": "thinking", "message": "⚠ Text-only model — image input skipped."}
+        yield {"agent": "vision", "status": "thinking", "message": "Text-only model -- image input skipped."}
 
     if image_b64 and image_media_type:
         images.insert(0, {"b64": image_b64, "media_type": image_media_type, "filename": "inline", "page": 0})
 
-    # ── Step 6: Build context ──────────────────────────────────────────────
+    # Step 6: Build context
     all_sources = rag_sources + [
         {"content": s["content"], "source": s["url"], "score": 0.7}
         for s in web_sources
@@ -568,7 +516,7 @@ async def run(
         for i, s in enumerate(all_sources)
     ])
 
-    # ── Step 7: Memory blocks ──────────────────────────────────────────────
+    # Step 7: Memory blocks
     profile_block = await asyncio.to_thread(build_profile_block, session_id)
 
     session_memory_block = ""
@@ -586,7 +534,7 @@ async def run(
         for m in past_context:
             cross_session_block += f"- [{m['timestamp'][:10]}] {m['content'][:300]}\n"
 
-    # ── Step 8: Build system prompt ────────────────────────────────────────
+    # Step 8: Build system prompt
     yield {"agent": "writer", "status": "thinking", "message": "Synthesizing answer..."}
 
     messages_for_llm = history + [{"role": "user", "content": query}]
@@ -602,7 +550,7 @@ Be thorough, structured, and clear.
 
 IMPORTANT MEMORY INSTRUCTIONS:
 - If the user asks about themselves (name, field, expertise, preferences), check the
-  USER PROFILE above first and answer from it — NEVER say you don't know if it's there.
+  USER PROFILE above first and answer from it -- NEVER say you don't know if it's there.
 - If they share new information about themselves, acknowledge it naturally.
 - Address the user by name if known and it feels natural.
 
@@ -611,12 +559,12 @@ CODE EXECUTION:
   in a ```python or ```javascript block.
 - Code is automatically executed and output is shown to the user.
 - Variables from earlier cells persist across calls in the same session.
-- For plots, use matplotlib. Do NOT call plt.show() — figures are captured automatically.
+- For plots, use matplotlib. Do NOT call plt.show() -- figures are captured automatically.
 
 SOURCES:
 {context}{session_memory_block}{cross_session_block}"""
 
-    # ── Step 9: Save user message ──────────────────────────────────────────
+    # Step 9: Save user message
     add_message(session_id, "user", query)
     lt_save(session_id=session_id, role="user", content=query, persona=persona, model_id=model_id)
 
@@ -636,7 +584,7 @@ SOURCES:
             yield {
                 "agent": "orchestrator",
                 "status": "thinking",
-                "message": f"⚠️ Switched to fallback model: `{actual_model_used}`",
+                "message": f"Switched to fallback model: `{actual_model_used}`",
             }
 
         for text in chunks:
@@ -646,21 +594,21 @@ SOURCES:
 
     except Exception as exc:
         error_str = str(exc)
-        print(f"[orchestrator] ✖ ALL FALLBACKS EXHAUSTED: {error_str}")
+        print(f"[orchestrator] ALL FALLBACKS EXHAUSTED: {error_str}")
         clean_msg = (
-            "⚠️ **All available models are currently unavailable.**\n\n"
+            "Warning: **All available models are currently unavailable.**\n\n"
             "Please try again in a few minutes, or check your API keys in `.env`.\n\n"
             f"Last error: `{error_str[:200]}`"
         )
         full_response = clean_msg
         yield {"agent": "writer", "status": "streaming", "message": clean_msg}
 
-    # ── Step 10: Auto-execute code blocks ──────────────────────────────────
+    # Step 10: Auto-execute code blocks
     has_code = bool(CODE_BLOCK_RE.search(full_response))
     code_results: list[dict] = []
 
     if has_code:
-        yield {"agent": "writer", "status": "thinking", "message": "⚙️ Executing code blocks..."}
+        yield {"agent": "writer", "status": "thinking", "message": "Executing code blocks..."}
 
         full_response, code_results = await auto_execute_code_blocks(full_response, session_id)
 
@@ -672,22 +620,21 @@ SOURCES:
                     "message": f"\n\n{format_execution_result(res)}",
                 }
 
-            # Send plots as special tagged messages (frontend detects [PLOT_B64] prefix)
             for b64 in res.get("plots", []):
                 yield {"agent": "writer", "status": "streaming", "message": f"[PLOT_B64]{b64}"}
 
             if res.get("install_msg"):
-                print(f"[orchestrator] 📦 {res['install_msg']}")
+                print(f"[orchestrator] {res['install_msg']}")
 
         total_plots = sum(len(r.get("plots", [])) for r in code_results)
         if total_plots:
             yield {
                 "agent": "vision",
                 "status": "thinking",
-                "message": f"📊 {total_plots} plot(s) generated",
+                "message": f"{total_plots} plot(s) generated",
             }
 
-    # ── Step 11: Save assistant response ───────────────────────────────────
+    # Step 11: Save assistant response
     add_message(session_id, "assistant", full_response)
     lt_save(
         session_id=session_id,

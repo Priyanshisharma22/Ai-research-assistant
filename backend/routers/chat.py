@@ -33,7 +33,7 @@ async def chat(request: QueryRequest):
             ):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
-            logger.error(f"Stream error: {e}")
+            logger.error(f"Stream error: {e}", exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
         finally:
             yield "data: [DONE]\n\n"
