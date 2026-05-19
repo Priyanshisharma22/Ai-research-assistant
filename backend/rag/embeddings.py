@@ -8,6 +8,6 @@ def get_embedding_function():
         _ef = DefaultEmbeddingFunction()
     return _ef
 
+d# ChromaDB embeddings removed — no longer needed
 def embed_texts(texts: list[str]) -> list:
-    ef = get_embedding_function()
-    return ef(texts)
+    return []  # no-op, kept for compatibility
