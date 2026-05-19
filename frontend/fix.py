@@ -1,0 +1,1 @@
+content = open(chr(39)+chr(39)+chr(39)+chr(10)+chr(39)+chr(39)+chr(39)).read()

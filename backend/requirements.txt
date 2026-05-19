@@ -1,0 +1,94 @@
+anthropic
+anyio
+certifi
+charset-normalizer
+chromadb==1.5.8
+click
+colorama
+distro
+fastapi
+google-generativeai
+groq
+mistralai
+openai
+httpx
+httpcore
+h11
+idna
+Jinja2
+MarkupSafe
+mmh3
+numpy
+orjson
+overrides
+packaging
+protobuf
+pybase64
+pydantic
+pydantic-settings
+PyMuPDF
+python-dotenv
+python-multipart
+PyYAML
+regex
+requests
+rich
+sniffio
+SQLAlchemy
+starlette
+tenacity
+tiktoken
+tqdm
+typer
+typing_extensions
+urllib3
+uvicorn
+watchfiles
+websockets
+xxhash
+zstandard
+duckduckgo-search
+tavily-python
+ddgs
+# ── Core ──────────────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+# ── AI / LLM ──────────────────────────────────────────────────────────────────
+openai
+groq
+anthropic
+google-generativeai
+mistralai
+
+# ── RAG / Vector DB ──────────────────────────────────────────────────────────
+chromadb
+sentence-transformers
+tiktoken
+
+# ── Document Processing ───────────────────────────────────────────────────────
+pypdf2
+python-docx
+pillow
+
+# ── Web Search ────────────────────────────────────────────────────────────────
+duckduckgo-search
+requests
+httpx
+
+# ── Google Drive Integration (NEW) ───────────────────────────────────────────
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+# ── Notion Integration (NEW) ─────────────────────────────────────────────────
+# Uses `requests` (already listed above) — no extra package needed.
+# Optional: notion-client for a richer typed SDK
+# notion-client
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+aiofiles
+python-multipart

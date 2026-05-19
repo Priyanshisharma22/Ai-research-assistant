@@ -1,0 +1,296 @@
+\documentclass[12pt, a4paper]{report}
+
+% --- UNIVERSAL PREAMBLE BLOCK ---
+\usepackage[a4paper, top=2.54cm, bottom=2.54cm, left=3cm, right=2cm]{geometry}
+\usepackage{fontspec}
+\usepackage[english, bidi=basic, provide=*]{babel}
+
+% Requirement: Times New Roman style
+\babelfont{rm}{Noto Serif} 
+
+\usepackage{setspace}
+\setstretch{1.5} % 1.5 line spacing as per guidelines
+
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{tocloft}
+\usepackage{lipsum} % For padding if needed, but we will use project content
+\usepackage{longtable}
+\usepackage{booktabs}
+
+% Custom Font Sizes as per instructions:
+% Chapter wise heading: 18pt bold
+\titleformat{\chapter}[display]
+  {\normalfont\fontsize{18}{21.6}\bfseries\centering}{\chaptertitlename\ \thechapter}{10pt}{\fontsize{18}{21.6}\selectfont}
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+
+% Heading: 16pt bold
+\titleformat{\section}
+  {\normalfont\fontsize{16}{19.2}\bfseries}{\thesection}{1em}{}
+
+% Sub heading: 14pt bold
+\titleformat{\subsection}
+  {\normalfont\fontsize{14}{16.8}\bfseries}{\thesubsection}{1em}{}
+
+% Normal content is 12pt (set in document class)
+
+\begin{document}
+
+% --- COVER PAGE ---
+\begin{titlepage}
+    \centering
+    \begin{singlespace}
+        {\fontsize{18}{21.6}\selectfont \textbf{A SYNOPSIS}} \\
+        \vspace{0.5cm}
+        {\fontsize{14}{16.8}\selectfont \textbf{on}} \\
+        \vspace{1cm}
+        {\fontsize{20}{24}\selectfont \textbf{MULTI-PROVIDER LLM ORCHESTRATION ENGINE WITH HYBRID RAG AND SANDBOXED EXECUTION}} \\
+        \vspace{1.5cm}
+        {\fontsize{12}{14.4}\selectfont Submitted in partial fulfillment of the requirements for the award of the degree of} \\
+        \vspace{0.5cm}
+        {\fontsize{14}{16.8}\selectfont \textbf{Bachelor of Technology}} \\
+        {\fontsize{12}{14.4}\selectfont \textbf{in}} \\
+        {\fontsize{14}{16.8}\selectfont \textbf{Computer Science \& Engineering}} \\
+        \vspace{0.5cm}
+        {\fontsize{12}{14.4}\selectfont Session 2023-2027 program under the} \\
+        \vspace{0.2cm}
+        {\fontsize{14}{16.8}\selectfont \textbf{Maharishi University of Information Technology, Noida}} \\
+        
+        \vspace{1.5cm}
+        % University Logo Placeholder
+        \framebox{\parbox{0.4\textwidth}{\centering \vspace{1cm} \textbf{MUIT LOGO} \vspace{1cm}}} \\
+        \vspace{1.5cm}
+        
+        \begin{flushleft}
+            \textbf{Submitted By:} \\
+            \textbf{Priyanshi Sharma} \\
+            Enroll No.: 05082023020 \\
+            Roll No.: 2302050119027 \\
+        \end{flushleft}
+        
+        \begin{flushright}
+            \textbf{Under the guidance of} \\
+            \textbf{Mr. XYZ} \\
+            (Maharishi School of Engineering \& Technology)
+        \end{flushright}
+        
+        \vfill
+        {\fontsize{12}{14.4}\selectfont \textbf{Maharishi University of Information Technology}} \\
+        {\fontsize{12}{14.4}\selectfont Noida-201304} \\
+        {\fontsize{12}{14.4}\selectfont www.muitnoida.edu.in} \\
+        {\fontsize{12}{14.4}\selectfont 2025}
+    \end{singlespace}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+% --- DECLARATION ---
+\chapter*{Declaration}
+\addcontentsline{toc}{chapter}{Declaration}
+I, \textbf{Priyanshi Sharma}, hereby declare the work, which is being presented in the project, entitled \textbf{“Multi-Provider LLM Orchestration Engine”} in partial fulfillment of the requirements for the award of the degree of Bachelor of Technology in Computer Science \& Engineering, is an authentic record of my own work carried out under the supervision of \textbf{Mr. XYZ}.
+
+The matter embodied in this project has not been submitted by me or anybody else for the award of any other degree in any other University/Institution.
+
+\vspace{2cm}
+\noindent Date: \today \hfill (Priyanshi Sharma) \\
+\indent \hfill Roll no. 2302050119027
+
+\clearpage
+
+% --- CERTIFICATE ---
+\chapter*{Certificate}
+\addcontentsline{toc}{chapter}{Certificate}
+Certified that \textbf{Priyanshi Sharma (Roll No. - 2302050119027)} has carried out the project work presented in this report entitled \textbf{“Multi-Provider LLM Orchestration Engine”} for the award of Bachelor of Technology in Computer Science \& Engineering from Maharishi University of Information Technology, Noida under my supervision. The report embodies results of original work, and studies are carried out by the student himself/herself and the contents of the report do not form the basis for the award of any other degree to the candidate or to anybody else from this or any other University/Institution.
+
+\vspace{3cm}
+\noindent \textbf{Mr. XYZ} \hfill \textbf{Dean, SoET} \\
+\noindent (Project Guide) \hfill (Maharishi School of Engineering \& Tech.)
+
+\clearpage
+
+% --- ACKNOWLEDGEMENT ---
+\chapter*{Acknowledgement}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+I am grateful to many people who have helped me throughout my B.Tech. First, I would like to thank my supervisor, \textbf{Mr. XYZ} and Dean (SoET) for their intimacy and for their great support during all the steps of this report. I would also like to thank my faculty members and my colleagues for their valuable suggestions. Besides my colleagues, I appreciate the care and support of my good friends, who always encouraged me towards this research work.
+
+I would also like to express my deep gratitude towards my family for their constant motivation and support. Their belief in my abilities has been a driving force behind the completion of this research work.
+
+\vspace{1cm}
+\noindent \textbf{Priyanshi Sharma} \\
+\noindent Univ. Roll No.- 2302050119027
+
+\clearpage
+
+% --- TOC ---
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+\chapter*{List of Symbols and Abbreviations}
+\addcontentsline{toc}{chapter}{List of Symbols and Abbreviations}
+\begin{itemize}
+    \item \textbf{LLM:} Large Language Model
+    \item \textbf{RAG:} Retrieval-Augmented Generation
+    \item \textbf{API:} Application Programming Interface
+    \item \textbf{DFD:} Data Flow Diagram
+    \item \textbf{gRPC:} Google Remote Procedure Call
+    \item \textbf{JSON:} JavaScript Object Notation
+    \item \textbf{WSL:} Windows Subsystem for Linux
+    \item \textbf{DBMS:} Database Management System
+    \item \textbf{SDK:} Software Development Kit
+\end{itemize}
+
+% --- START CHAPTERS ---
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapter{Introduction}
+
+\section{Project Overview}
+The rapid evolution of generative AI has led to a proliferation of Large Language Models (LLMs), each with unique strengths, context limits, and cost structures. However, building applications on a single model creates a single point of failure. If an API provider experiences downtime or rate-limits a user, the entire application becomes unusable. 
+
+This project, the "Multi-Provider LLM Orchestration Engine," addresses these challenges by creating a unified abstraction layer. It dynamically routes user queries across OpenAI, Anthropic, Google Gemini, and Mistral. It ensures high availability through automated fallback mechanisms and enhances the quality of AI responses by integrating real-time web search and local document retrieval (RAG).
+
+\section{Problem Definition}
+Developers face several hurdles when deploying AI agents:
+\begin{itemize}
+    \item \textbf{Reliability:} Sudden outages or 429 (Too Many Requests) errors.
+    \item \textbf{Context Management:} Models have varying token limits (e.g., 8k vs 128k). Sending a large document to a small-context model causes a crash.
+    \item \textbf{Hallucination:} Models lack real-time information or specific private data.
+    \item \textbf{Code Safety:} LLMs often generate code that users want to run, but executing it directly on a host machine is a security risk.
+\end{itemize}
+
+\section{Objectives}
+The primary goals of this project are:
+\begin{enumerate}
+    \item To design a fail-safe orchestration layer that switches providers automatically during failures.
+    \item To implement a "Hybrid Retrieval" system that combines Vector DB results with live web results.
+    \item To build a sandboxed execution environment that can run Python/JS code generated by the LLM in real-time.
+    \item To create a persistent "Two-Tier Memory" system that remembers user preferences across different sessions.
+\end{enumerate}
+
+\section{Literature Survey}
+\subsection{Current LLM Orchestrators}
+Existing tools like LangChain and LlamaIndex provide frameworks for building AI apps but often lack native, high-performance, asynchronous orchestration that handles model outages at the engine level. 
+
+\subsection{Retrieval-Augmented Generation (RAG)}
+RAG has become the industry standard for reducing hallucinations. By feeding external data into the prompt, the model "grounds" its answers. However, most RAG systems are static. This project proposes a dynamic RAG that fetches from both a local knowledge base and the live internet via DuckDuckGo.
+
+\section{Proposed System Architecture}
+The system architecture consists of four primary modules:
+\begin{itemize}
+    \item \textbf{Orchestration Engine:} Written in Python using Asyncio to handle parallel API requests and fallback logic.
+    \item \textbf{Hybrid Retrieval Pipeline:} Uses ChromaDB for vector storage and DuckDuckGo for live search.
+    \item \textbf{Safe Execution Sandbox:} A Docker-based or process-isolated environment for code execution.
+    \item \textbf{Persona Manager:} A metadata-driven system that adjusts the AI's "voice" based on whether the user is a student, researcher, or developer.
+\end{itemize}
+
+\section{Feasibility Study}
+\subsection{Technical Feasibility}
+The project uses stable APIs (OpenAI, Anthropic) and robust open-source libraries. The asynchronous nature of Python's \texttt{asyncio} is perfectly suited for managing multiple network-bound tasks.
+
+\subsection{Operational Feasibility}
+The system will be accessible via a simple web interface, making it easy for non-technical users to benefit from multi-model AI.
+
+\section{S/W and H/W Requirements}
+\subsection{Hardware Requirements}
+\begin{itemize}
+    \item \textbf{Processor:} Quad-core 2.5GHz or higher.
+    \item \textbf{RAM:} 16GB (to handle local vector embeddings and sandboxed containers).
+    \item \textbf{Disk Space:} 50GB SSD for document storage and Docker images.
+\end{itemize}
+
+\subsection{Software Requirements}
+\begin{itemize}
+    \item \textbf{Language:} Python 3.10+, TypeScript/React for UI.
+    \item \textbf{Environment:} Linux/Docker.
+    \item \textbf{Libraries:} FastAPI, Pydantic, ChromaDB, OpenAI/Anthropic SDKs.
+\end{itemize}
+
+\chapter{Analysis and Design}
+
+\section{What is DFD?}
+A Data Flow Diagram (DFD) is a graphical representation of the "flow" of data through an information system. It shows how data enters the system, how it is processed, and where it is stored.
+
+\section{Data Flow Diagram (Level 0 and 1)}
+\subsection{Level 0 (Context Diagram)}
+The user provides a query to the System. The System interacts with external LLM APIs and Web Search Tools and returns a final response to the User.
+
+\subsection{Level 1 DFD}
+\begin{itemize}
+    \item \textbf{Process 1.0 (Query Parsing):} The system identifies the intent and persona.
+    \item \textbf{Process 2.0 (Context Retrieval):} The system queries the Vector DB and Web Search.
+    \item \textbf{Process 3.0 (Orchestration):} The system attempts to call the primary LLM; if it fails, it calls the fallback.
+    \item \textbf{Process 4.0 (Post-Processing):} The system detects code blocks and executes them if requested.
+\end{itemize}
+
+\section{Database Design}
+The system uses a Document-based approach for user profiles and a Vector-based approach for documents.
+\begin{table}[h]
+    \centering
+    \caption{User Profile Schema}
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Field} & \textbf{Type} & \textbf{Description} \\ \hline
+        user\_id & String & Unique Identifier \\ \hline
+        persona & String & Student/Researcher/etc. \\ \hline
+        memory\_id & UUID & Pointer to conversation history \\ \hline
+        preferences & JSON & User-specific settings \\ \hline
+    \end{tabular}
+\end{table}
+
+\chapter{Methodology and Testing}
+
+\section{Methodology}
+The project follows an Agile development methodology. Each "Sprint" focuses on a specific provider integration or feature (e.g., RAG integration). This allows for continuous testing and refinement of the fallback logic.
+
+\section{Testing Strategy}
+\begin{itemize}
+    \item \textbf{Unit Testing:} Testing individual API wrappers.
+    \item \textbf{Integration Testing:} Ensuring the Orchestrator correctly passes context to the fallback model.
+    \item \textbf{Stress Testing:} Simulating API rate limits to verify the fallback chain triggers correctly.
+\end{itemize}
+
+\chapter{Future Scope and Conclusion}
+
+\section{Future Scope}
+Future iterations will include:
+\begin{itemize}
+    \item Support for locally hosted models (Llama 3/4) via Ollama.
+    \item Multi-modal support for real-time video analysis.
+    \item Decentralized orchestration to further reduce reliance on central providers.
+\end{itemize}
+
+\section{Conclusion}
+This project demonstrates that a multi-provider approach significantly improves the reliability and utility of AI systems. By combining orchestration, retrieval, and execution into a single engine, we create a more resilient and capable AI assistant that can handle complex real-world tasks.
+
+\chapter{Project Management}
+
+\section{Proposed Timeframe}
+\begin{itemize}
+    \item \textbf{Month 1:} Requirement Gathering and Architecture Setup.
+    \item \textbf{Month 2:} Orchestration and Multi-LLM API Integration.
+    \item \textbf{Month 3:} RAG and Vector Database implementation.
+    \item \textbf{Month 4:} UI Development, Final Testing, and Deployment.
+\end{itemize}
+
+\section{Individual Roles}
+\begin{itemize}
+    \item \textbf{Priyanshi Sharma:} Lead Developer. Responsible for Backend logic, API orchestration, and RAG pipeline.
+\end{itemize}
+
+\begin{thebibliography}{9}
+    \addcontentsline{toc}{chapter}{Bibliography}
+    \bibitem{pressman} Roger S. Pressman. Software Engineering: A Practitioner's Approach. McGraw-Hill, 2005.
+    \bibitem{sommerville} Ian Sommerville. Software Engineering. Addison-Wesley, 2004.
+    \bibitem{brooks} Frederick P. Brooks. The Mythical Man-Month. Addison-Wesley, 1995.
+    \bibitem{fowler} Martin Fowler. UML Distilled. Addison-Wesley, 2003.
+    \bibitem{yourdon} Edward Yourdon. Structured Design. Prentice-Hall, 1979.
+\end{thebibliography}
+
+\end{document}
