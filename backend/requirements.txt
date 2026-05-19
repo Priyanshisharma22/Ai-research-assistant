@@ -64,7 +64,7 @@ google-generativeai
 mistralai
 
 # ── RAG / Vector DB ──────────────────────────────────────────────────────────
-chromadb
+
 sentence-transformers
 tiktoken
 
