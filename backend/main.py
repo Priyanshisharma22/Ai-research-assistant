@@ -18,10 +18,14 @@ app.add_middleware(
 
 app.include_router(chat.router,           prefix="/api")
 app.include_router(upload.router,         prefix="/api")
-app.include_router(profile_router,        prefix="/api")   # ← ADD prefix="/api"
+app.include_router(profile_router,        prefix="/api")
 app.include_router(code_router,           prefix="/api")
 app.include_router(integrations_router,   prefix="/api")
 
 @app.get("/")
 def root():
     return {"status": "AI Research Assistant running"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
