@@ -1,3 +1,4 @@
+# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import chat, upload
@@ -15,11 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat.router, prefix="/api")
-app.include_router(upload.router, prefix="/api")
-app.include_router(profile_router)
-app.include_router(code_router, prefix="/api")
-app.include_router(integrations_router, prefix="/api")
+app.include_router(chat.router,           prefix="/api")
+app.include_router(upload.router,         prefix="/api")
+app.include_router(profile_router,        prefix="/api")   # ← ADD prefix="/api"
+app.include_router(code_router,           prefix="/api")
+app.include_router(integrations_router,   prefix="/api")
 
 @app.get("/")
 def root():

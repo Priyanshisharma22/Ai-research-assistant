@@ -1,184 +1,139 @@
-"""
-routers/integrations.py
------------------------
-FastAPI router for Google Drive and Notion integration endpoints.
-
-All Google credentials are loaded from environment variables (.env).
-The frontend does NOT need to supply an access_token for Google Drive —
-it only needs to call the endpoint. Tokens are refreshed automatically.
-
-For Notion, the token is still accepted from the frontend OR falls back
-to NOTION_TOKEN in .env.
-"""
-
+# routers/integrations.py
 import os
 import logging
-from typing import Optional
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from typing import Optional
 
 from tools.integrations import (
     build_google_credentials,
-    get_valid_access_token,
     list_google_drive_files,
+    sync_google_drive_file,
     list_notion_pages,
-    sync_external_source,
+    sync_notion_page,
 )
 
-load_dotenv()
-
+router = APIRouter()
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 
-# ─────────────────────────────────────────────
-# REQUEST MODELS
-# ─────────────────────────────────────────────
+# ── Request models ─────────────────────────────────────────────
 
-class GoogleListRequest(BaseModel):
-    # access_token is now OPTIONAL — backend uses .env if not supplied
-    access_token: Optional[str] = None
+class ListRequest(BaseModel):
     page_size: int = 20
-
-
-class NotionListRequest(BaseModel):
-    notion_token: Optional[str] = None   # falls back to NOTION_TOKEN env var
-    page_size: int = 20
-
 
 class SyncRequest(BaseModel):
-    source: str                          # "google_drive" | "notion"
+    source: str                        # "google_drive" | "notion"
     item_id: str
     item_name: str
-    mime_type: Optional[str] = None
-    credentials: Optional[dict] = None  # ignored for Google Drive (uses .env)
+    credentials: dict = {}             # frontend sends {} — backend fills from .env
+    mime_type: Optional[str] = None    # required for Google Drive
 
 
-# ─────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────
+# ── Google Drive ───────────────────────────────────────────────
 
-def _google_creds(access_token: Optional[str] = None) -> dict:
+@router.post("/integrations/google-drive/list")
+def list_drive_files(req: ListRequest):
     """
-    Build a Google credentials dict from .env, optionally overriding the
-    access_token with whatever the frontend sent (usually ignored now).
-    The refresh_token / client_id / client_secret always come from .env.
-    """
-    creds = build_google_credentials()
-    if access_token:
-        creds["access_token"] = access_token
-    return creds
-
-
-def _notion_token(supplied: Optional[str]) -> str:
-    token = supplied or os.getenv("NOTION_TOKEN", "")
-    if not token:
-        raise HTTPException(
-            status_code=400,
-            detail="Notion token not found. Set NOTION_TOKEN in .env or pass notion_token in the request.",
-        )
-    return token
-
-
-# ─────────────────────────────────────────────
-# ENDPOINTS
-# ─────────────────────────────────────────────
-
-@router.post("/google-drive/list")
-async def list_drive_files(req: GoogleListRequest):
-    """
-    List Google Drive files.
-    The frontend no longer needs to supply an access_token —
-    credentials come from .env automatically.
+    List Google Drive files using credentials from .env.
+    Frontend sends no credentials — everything comes from environment.
     """
     try:
-        creds = _google_creds(req.access_token)
+        creds = build_google_credentials()   # reads GOOGLE_* from .env
         files = list_google_drive_files(creds, page_size=req.page_size)
         return {"files": files, "count": len(files)}
     except Exception as e:
-        logger.error(f"[Drive] list failed: {e}")
+        logger.error(f"[Drive/list] {e}")
+        # Return friendly error the frontend can display
+        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/notion/list")
-async def list_notion(req: NotionListRequest):
-    """List recently edited Notion pages."""
+# ── Notion ─────────────────────────────────────────────────────
+
+@router.post("/integrations/notion/list")
+def list_notion(req: ListRequest):
+    """
+    List Notion pages using NOTION_TOKEN from .env.
+    """
     try:
-        token = _notion_token(req.notion_token)
-        pages = list_notion_pages(token, page_size=req.page_size)
+        notion_token = os.getenv("NOTION_TOKEN", "")
+        if not notion_token:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=500,
+                detail="NOTION_TOKEN not set in .env"
+            )
+        pages = list_notion_pages(notion_token, page_size=req.page_size)
         return {"pages": pages, "count": len(pages)}
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"[Notion] list failed: {e}")
+        logger.error(f"[Notion/list] {e}")
+        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/sync")
-async def sync_item(req: SyncRequest):
+# ── Unified Sync ───────────────────────────────────────────────
+
+@router.post("/integrations/sync")
+def sync_item(req: SyncRequest):
     """
-    Sync a single file/page from Google Drive or Notion into the local
-    uploads directory so it can be indexed by the RAG pipeline.
+    Sync a single file/page into uploads/.
+    Frontend sends empty credentials dict — backend fills from .env.
     """
+    upload_dir = os.getenv("UPLOAD_DIR", "./uploads")
+
     try:
         if req.source == "google_drive":
-            # Always use .env credentials for Google Drive — ignore
-            # whatever the frontend put in credentials.access_token
-            credentials = _google_creds(
-                (req.credentials or {}).get("access_token")
+            creds = build_google_credentials()   # always from .env
+            local_path = sync_google_drive_file(
+                credentials_json=creds,
+                file_id=req.item_id,
+                file_name=req.item_name,
+                mime_type=req.mime_type or "application/pdf",
+                upload_dir=upload_dir,
             )
+
         elif req.source == "notion":
-            notion_token = _notion_token(
-                (req.credentials or {}).get("notion_token")
+            notion_token = os.getenv("NOTION_TOKEN", "")
+            if not notion_token:
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=500,
+                    detail="NOTION_TOKEN not set in .env"
+                )
+            local_path = sync_notion_page(
+                notion_token=notion_token,
+                page_id=req.item_id,
+                page_title=req.item_name,
+                upload_dir=upload_dir,
             )
-            credentials = {"notion_token": notion_token}
+
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported source: {req.source}")
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown source: {req.source}"
+            )
 
-        upload_dir = os.getenv("UPLOAD_DIR", "./uploads")
-        result = sync_external_source(
-            source=req.source,
-            item_id=req.item_id,
-            item_name=req.item_name,
-            credentials=credentials,
-            upload_dir=upload_dir,
-            mime_type=req.mime_type,
-        )
-        return result
+        return {
+            "status": "synced",
+            "local_path": local_path,
+            "source": req.source,
+            "item_name": req.item_name,
+        }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"[Sync] failed: {e}")
+        logger.error(f"[Sync] {e}")
+        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/google-drive/status")
-async def google_drive_status():
-    """
-    Health-check endpoint — verifies the .env Google credentials work
-    without needing any input from the frontend.
-    """
-    try:
-        creds = build_google_credentials()
-        missing = [
-            k for k in ("refresh_token", "client_id", "client_secret")
-            if not creds.get(k)
-        ]
-        if missing:
-            return {
-                "status": "misconfigured",
-                "missing_env_vars": [
-                    f"GOOGLE_{k.upper()}" for k in missing
-                ],
-            }
-        # Try to get a valid token (will refresh if needed)
-        token = get_valid_access_token(creds)
-        return {
-            "status": "ok",
-            "token_preview": token[:20] + "...",
-        }
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
+# ── Health check ───────────────────────────────────────────────
+
+@router.get("/integrations/status")
+def integrations_status():
+    """Quick check that env credentials are present."""
+    return {
+        "google_drive": bool(os.getenv("GOOGLE_REFRESH_TOKEN")),
+        "notion":        bool(os.getenv("NOTION_TOKEN")),
+    }
