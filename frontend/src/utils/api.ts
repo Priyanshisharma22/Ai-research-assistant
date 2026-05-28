@@ -1,23 +1,22 @@
 // frontend/src/utils/api.ts
 
-export const API =
-  (import.meta.env.VITE_API_URL ?? "https://ai-research-assistant-gvtn.onrender.com") + "/api"
-
 const BASE =
   import.meta.env.VITE_API_URL ?? "https://ai-research-assistant-gvtn.onrender.com"
 
-// ── Wake up Render (free tier sleeps after 15 min) ────────────────────────────
+export const API = BASE + "/api"
+
+// ── Wake up Render ────────────────────────────────────────────────────────────
 export async function wakeBackend(): Promise<void> {
   try {
     await fetch(`${BASE}/health`)
   } catch {
-    // silently ignore — backend may still be booting
+    // silently ignore
   }
 }
 
 // ── Generic request helper ────────────────────────────────────────────────────
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API}${path}`, {   // ✅ use API (with /api)
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -35,7 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ── Health check ──────────────────────────────────────────────────────────────
 export async function checkHealth(): Promise<{ status: string }> {
-  return request<{ status: string }>("/health")
+  return request<{ status: string }>("/health")  // → BASE/api/health
 }
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
@@ -64,7 +63,7 @@ export interface ChatResponse {
 }
 
 export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
-  return request<ChatResponse>("/api/chat", {
+  return request<ChatResponse>("/chat", {    // ✅ just /chat, not /api/chat
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -81,7 +80,7 @@ export async function uploadPDF(file: File): Promise<UploadResponse> {
   const formData = new FormData()
   formData.append("file", file)
 
-  const res = await fetch(`${BASE}/api/upload`, {
+  const res = await fetch(`${API}/upload`, {   // ✅ API + /upload
     method: "POST",
     body: formData,
   })
