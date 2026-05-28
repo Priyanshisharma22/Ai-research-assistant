@@ -128,7 +128,8 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
         if (done) break
         const lines = decoder.decode(value).split("\n").filter(l => l.startsWith("data: "))
         for (const line of lines) {
-          const data = line.replace("data: ", "").trim()
+          // ✅ FIX: use slice instead of replace to correctly strip the "data: " prefix
+          const data = line.slice("data: ".length).trim()
           if (data === "[DONE]") break
           try {
             const event = JSON.parse(data)
@@ -144,7 +145,8 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
       }
     } catch(err) {
       setStatus("error")
-      setProgress("Upload failed. Is the backend running?")
+      console.error("Upload error:", err)                          // ✅ ADD: log real error
+      setProgress("Upload failed: " + String(err))                // ✅ FIX: show real error
     }
   }
 
