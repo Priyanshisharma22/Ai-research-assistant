@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react"
+import type { ChangeEvent } from "react"
 import { useChat, MODELS } from "../hooks/useChat"
+import { API } from "../utils/api"
 import PersonaSwitcher from "./PersonaSwitcher"
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api"
 
 interface DocSummary {
   filename: string
@@ -103,7 +103,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
     }
   }
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ""
@@ -114,6 +114,13 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
     form.append("file", file)
     try {
       const res = await fetch(API + "/upload", { method: "POST", body: form })
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => "")
+        throw new Error(errorText || `Upload failed with status ${res.status}`)
+      }
+      if (!res.body) {
+        throw new Error("Upload succeeded but no response stream was returned.")
+      }
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       while (true) {
@@ -130,7 +137,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
             if (event.status === "done") {
               const doc = { filename: event.filename, summary: event.summary, chunks: event.chunks }
               setLastSummary(doc)
-              setSummaries(prev => [doc, ...prev.filter(d => d.filename !== event.filename)])
+              setSummaries((prev: DocSummary[]) => [doc, ...prev.filter((d: DocSummary) => d.filename !== event.filename)])
             }
           } catch(err) {}
         }
@@ -176,7 +183,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
   }
 
   const syncItem = async (item: ExternalItem) => {
-    setSyncStatus(s => ({ ...s, [item.id]: "syncing" }))
+    setSyncStatus((s: Record<string, SyncItemStatus>) => ({ ...s, [item.id]: "syncing" as SyncItemStatus }))
     const isDrive = item._source === "google_drive"
     const driveItem = item as DriveFile & { _source: SyncSource }
     const notionItem = item as NotionPage & { _source: SyncSource }
@@ -204,9 +211,9 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
         body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error()
-      setSyncStatus(s => ({ ...s, [item.id]: "done" }))
+      setSyncStatus((s: Record<string, SyncItemStatus>) => ({ ...s, [item.id]: "done" as SyncItemStatus }))
     } catch {
-      setSyncStatus(s => ({ ...s, [item.id]: "error" }))
+      setSyncStatus((s: Record<string, SyncItemStatus>) => ({ ...s, [item.id]: "error" as SyncItemStatus }))
     }
   }
 
@@ -269,7 +276,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
         </p>
         <select
           value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedModel((e.target as HTMLSelectElement).value)}
           style={{
             width: "100%", padding: "8px 10px", background: "#1a1a2e",
             border: "1px solid #3a3a5a", borderRadius: 8,
@@ -296,7 +303,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
       <div style={{ borderTop: "1px solid #1e1e2e", paddingTop: 12, marginTop: 8 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: profileOpen ? 8 : 0 }}>
           <button
-            onClick={() => setProfileOpen(o => !o)}
+            onClick={() => setProfileOpen((o: boolean) => !o)}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, flex: 1 }}
           >
             <p style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
@@ -373,7 +380,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
       {/* ── Import from Google Drive / Notion ── */}
       <div style={{ borderTop: "1px solid #1e1e2e", paddingTop: 12, marginTop: 8 }}>
         <button
-          onClick={() => setImportOpen(o => !o)}
+          onClick={() => setImportOpen((o: boolean) => !o)}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}
         >
           <p style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
@@ -447,7 +454,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
                 type="text"
                 placeholder="Filter files..."
                 value={importFilter}
-                onChange={e => setImportFilter(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setImportFilter((e.target as HTMLInputElement).value)}
                 style={{
                   width: "100%", padding: "6px 10px", background: "#111",
                   border: "1px solid #2a2a3a", borderRadius: 7,
@@ -583,7 +590,7 @@ export default function Sidebar({ onOpenProfile }: SidebarProps) {
   )
 }
 
-function FactRow({ fact, icon }: { fact: ProfileFact; icon: string }) {
+function FactRow({ fact, icon, key: _key }: { fact: ProfileFact; icon: string; key?: number }) {
   return (
     <div style={{
       display: "flex", alignItems: "flex-start", gap: 6,

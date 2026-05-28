@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import type { ChangeEvent } from "react";
+import { API } from "../utils/api";
 
 // ─────────────────────────────────────────────
 // Types
@@ -26,8 +28,6 @@ type Item = (DriveFile | NotionPage) & { _source: Source };
 interface SyncStatus {
   [id: string]: "idle" | "syncing" | "done" | "error";
 }
-
-const API = "http://localhost:8000/api";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -100,7 +100,7 @@ export default function IntegrationSync() {
   // ── Sync single item ────────────────────────
 
   const syncItem = useCallback(async (item: Item) => {
-    setSyncStatus((s) => ({ ...s, [item.id]: "syncing" }));
+    setSyncStatus((s: SyncStatus) => ({ ...s, [item.id]: "syncing" as SyncStatus[keyof SyncStatus] }));
 
     const isDrive = item._source === "google_drive";
     const driveItem = item as DriveFile & { _source: Source };
@@ -128,9 +128,9 @@ export default function IntegrationSync() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(await res.text());
-      setSyncStatus((s) => ({ ...s, [item.id]: "done" }));
+      setSyncStatus((s: SyncStatus) => ({ ...s, [item.id]: "done" as SyncStatus[keyof SyncStatus] }));
     } catch {
-      setSyncStatus((s) => ({ ...s, [item.id]: "error" }));
+      setSyncStatus((s: SyncStatus) => ({ ...s, [item.id]: "error" as SyncStatus[keyof SyncStatus] }));
     }
   }, [googleToken, notionToken]);
 
@@ -186,7 +186,7 @@ export default function IntegrationSync() {
                 type="password"
                 placeholder="ya29.a0AfH6..."
                 value={googleToken}
-                onChange={(e) => setGoogleToken(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setGoogleToken(e.target.value)}
                 style={styles.input}
               />
               <a
@@ -207,7 +207,7 @@ export default function IntegrationSync() {
                 type="password"
                 placeholder="secret_..."
                 value={notionToken}
-                onChange={(e) => setNotionToken(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setNotionToken(e.target.value)}
                 style={styles.input}
               />
               <a
@@ -252,7 +252,7 @@ export default function IntegrationSync() {
             type="text"
             placeholder="Filter files..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             style={styles.searchInput}
           />
           <span style={styles.countBadge}>{filtered.length} files</span>

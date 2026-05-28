@@ -1,9 +1,6 @@
 import { useChatStore } from "../store/chatStore"
 import type { Message } from "../types"
-
-const API = import.meta.env.VITE_BACKEND_URL
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
-  : "http://localhost:8000/api"
+import { API } from "../utils/api"
 
 export const MODELS = [
   { id: "groq/llama-3.3-70b-versatile",                   label: "Llama 3.3 70B",        provider: "Groq" },

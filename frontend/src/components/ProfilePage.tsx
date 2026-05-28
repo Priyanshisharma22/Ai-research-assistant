@@ -1,6 +1,6 @@
 import { useState } from "react"
-
-const API = "http://localhost:8000/api"
+import type { ChangeEvent } from "react"
+import { API } from "../utils/api"
 
 interface ProfileForm {
   name: string
@@ -71,10 +71,10 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     : null
 
   const setField = (key: keyof ProfileForm, value: string) =>
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm((prev: ProfileForm) => ({ ...prev, [key]: value }))
 
   const toggleChip = (key: "topics" | "response_style", val: string) => {
-    setForm(prev => ({
+    setForm((prev: ProfileForm) => ({
       ...prev,
       [key]: prev[key].includes(val)
         ? prev[key].filter((v: string) => v !== val)
@@ -84,7 +84,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
   const handleDepth = (val: number) => {
     setDepth(val)
-    setForm(prev => ({ ...prev, technical_depth: DEPTH_LABELS[val] }))
+    setForm((prev: ProfileForm) => ({ ...prev, technical_depth: DEPTH_LABELS[val] }))
   }
 
   const handleSave = async () => {
@@ -223,7 +223,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 style={inputStyle}
                 placeholder="Priyanshi Sharma"
                 value={form.name}
-                onChange={e => setField("name", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setField("name", e.target.value)}
               />
             </div>
             <div>
@@ -232,7 +232,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 style={inputStyle}
                 placeholder="B.Tech student"
                 value={form.role}
-                onChange={e => setField("role", e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setField("role", e.target.value)}
               />
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             style={inputStyle}
             placeholder="Machine learning, NLP, computer vision…"
             value={form.field}
-            onChange={e => setField("field", e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setField("field", e.target.value)}
           />
 
           <label style={labelStyle}>
@@ -253,7 +253,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             style={inputStyle}
             placeholder="IIT Delhi, startup name…"
             value={form.organisation}
-            onChange={e => setField("organisation", e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setField("organisation", e.target.value)}
           />
 
           <label style={labelStyle}>
@@ -263,7 +263,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             style={{ ...inputStyle, minHeight: 80, resize: "vertical", lineHeight: 1.6, marginBottom: 0 }}
             placeholder="A sentence about your background or current focus…"
             value={form.bio}
-            onChange={e => setField("bio", e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setField("bio", e.target.value)}
           />
         </div>
 
@@ -296,7 +296,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             <span style={{ fontSize: 12, color: "#444", minWidth: 58 }}>Beginner</span>
             <input
               type="range" min={1} max={5} step={1} value={depth}
-              onChange={e => handleDepth(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleDepth(Number(e.target.value))}
               style={{ flex: 1, accentColor: "#a78bfa" }}
             />
             <span style={{ fontSize: 12, color: "#444", minWidth: 42, textAlign: "right" }}>Expert</span>
@@ -308,7 +308,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           <label style={labelStyle}>Primary goal</label>
           <select
             value={form.primary_goal}
-            onChange={e => setField("primary_goal", e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setField("primary_goal", e.target.value)}
             style={{
               width: "100%", padding: "9px 12px", fontSize: 14,
               background: "#0d0d1a", border: "1px solid #2a2a3a",
